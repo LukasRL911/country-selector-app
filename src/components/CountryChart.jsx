@@ -13,88 +13,122 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export default function CountryChart() {
-  const [countries, setCountries] = useState([]);
-  const [selectedCountry, setSelectedCountry] = useState("");
-  const [populationData, setPopulationData] = useState([]);
+export default function CountryChart({ selectedCountry }) {
+  const [inflationData, setInflationData] = useState([]);
 
   useEffect(() => {
-    async function fetchCountries() {
+    async function fetchInflation() {
+      if (!selectedCountry) {
+        setInflationData([]);
+        return;
+      }
+
       try {
-        const res = await fetch("https://countriesnow.space/api/v0.1/countries/positions");
+        // Try to resolve ISO2 code using restcountries API
+        let code = null;
+
+        try {
+          let res = await fetch(
+            `https://restcountries.com/v3.1/name/${encodeURIComponent(selectedCountry)}?fullText=true`
+          );
+          if (!res.ok) {
+            // fallback to non-fullText search
+            res = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(selectedCountry)}`);
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            code = data?.[0]?.cca2 || null;
+          }
+        } catch (err) {
+          console.warn("restcountries lookup failed, falling back to mapping", err);
+        }
+
+        // Basic fallback mapping for some common countries
+        const fallbackMap = {
+          "United States": "US",
+          USA: "US",
+          Canada: "CA",
+          Germany: "DE",
+          Brazil: "BR",
+          Argentina: "AR",
+          Japan: "JP",
+          France: "FR",
+          China: "CN",
+          India: "IN",
+          Mexico: "MX",
+          Italy: "IT",
+          Spain: "ES",
+          Australia: "AU",
+          "South Africa": "ZA",
+        };
+
+        if (!code) {
+          code = fallbackMap[selectedCountry] || null;
+        }
+
+        if (!code) {
+          console.warn("No ISO code found for:", selectedCountry);
+          setInflationData([]);
+          return;
+        }
+
+        const res = await fetch(
+          `https://api.worldbank.org/v2/country/${code}/indicator/FP.CPI.TOTL.ZG?format=json&per_page=1000`
+        );
         const result = await res.json();
-        const names = result.data.map((c) => c.name).sort();
-        setCountries(names);
+
+        const entries = (result[1] || [])
+          .filter((item) => item.value !== null)
+          .map((item) => ({
+            year: item.date,
+            inflation_rate: Number(item.value.toFixed(2)),
+          }))
+          .reverse();
+
+        setInflationData(entries);
       } catch (err) {
-        console.error("Failed to fetch countries:", err);
+        console.error("Failed to fetch inflation data:", err);
+        setInflationData([]);
       }
     }
 
-    fetchCountries();
-  }, []);
-
-  useEffect(() => {
-    async function fetchPopulation() {
-      if (!selectedCountry) return;
-
-      try {
-        const res = await fetch("https://countriesnow.space/api/v0.1/countries/population", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ country: selectedCountry })
-        });
-
-        const result = await res.json();
-        const history = result.data?.populationCounts || [];
-        setPopulationData(history);
-      } catch (err) {
-        console.error("Failed to fetch population data:", err);
-      }
-    }
-
-    fetchPopulation();
+    fetchInflation();
   }, [selectedCountry]);
 
   const chartData = {
-    labels: populationData.map((entry) => entry.year),
+    labels: inflationData.map((entry) => entry.year),
     datasets: [
       {
-        label: `Population of ${selectedCountry}`,
-        data: populationData.map((entry) => entry.value),
+        label: `Inflation Rate of ${selectedCountry}`,
+        data: inflationData.map((entry) => entry.inflation_rate),
         borderColor: "rgba(75,192,192,1)",
-        backgroundColor: "rgba(75,192,192,0.2)"
-      }
-    ]
+        backgroundColor: "rgba(75,192,192,0.2)",
+        tension: 0.2,
+      },
+    ],
   };
 
   const options = {
     responsive: true,
     plugins: {
       legend: { position: "top" },
-      title: { display: true, text: `Population Trend for ${selectedCountry}` }
-    }
+      title: { display: true, text: `Inflation Trend for ${selectedCountry}` },
+    },
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "2rem auto" }}>
-      <label htmlFor="chart-country-select">Dropdown 2 (for chart):</label>
-      <br />
-      <select
-        id="chart-country-select"
-        value={selectedCountry}
-        onChange={(e) => setSelectedCountry(e.target.value)}
-        style={{ padding: "0.5rem", minWidth: "250px", marginTop: "0.5rem" }}
-      >
-        <option value="">-- Select a country --</option>
-        {countries.map((name) => (
-          <option key={name} value={name}>{name}</option>
-        ))}
-      </select>
-
+    <div style={{ maxWidth: "700px", margin: "2rem auto" }}>
       {selectedCountry ? (
-        <Line data={chartData} options={options} />
+        inflationData.length > 0 ? (
+          <Line data={chartData} options={options} />
+        ) : (
+          <p style={{ marginTop: "1rem", color: "#888" }}>
+            No inflation data found for {selectedCountry}.
+          </p>
+        )
       ) : (
-        <p style={{ marginTop: "1rem" }}>Select a country to view its population chart.</p>
+        <p style={{ marginTop: "1rem" }}>Select a country to view its inflation chart.</p>
       )}
     </div>
   );
