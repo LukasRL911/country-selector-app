@@ -1,10 +1,10 @@
-import CountriesDropdown from "./components/CountriesDropdown";
+import CountryChart from "./components/CountryChart";
 
 function App() {
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
-      <h1>🌍 Country Selector</h1>
-      <CountriesDropdown />
+    <div style={{ padding: "2rem" }}>
+      <h1>📊 Country Population Chart</h1>
+      <CountryChart />
     </div>
   );
 }
