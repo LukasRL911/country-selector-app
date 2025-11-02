@@ -6,18 +6,9 @@ function App() {
   const [selectedCountry, setSelectedCountry] = useState("");
 
   return (
-    <div
-      style={{
-        padding: "2rem",
-        fontFamily: "Arial, sans-serif",
-        backgroundColor: "#111",
-        color: "#fff",
-        minHeight: "100vh",
-      }}
-    >
-      <h1 style={{ fontSize: "2rem" }}>🌍 Country Dashboard</h1>
+    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif", background: "#111", color: "#fff", minHeight: "100vh" }}>
+      <h1>🌍 Country Dashboard</h1>
       <p>Select a country below to view inflation trends.</p>
-
       <CountriesDropdown selectedCountry={selectedCountry} onChange={setSelectedCountry} />
       <CountryChart selectedCountry={selectedCountry} />
     </div>
