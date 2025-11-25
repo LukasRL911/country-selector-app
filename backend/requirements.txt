@@ -1,0 +1,4 @@
+# Requirements for running this FastAPI app on Python 3.11 or lower
+fastapi
+uvicorn[standard]
+pydantic<2
