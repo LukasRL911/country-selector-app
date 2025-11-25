@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+inflation.db
+*.sqlite
+node_modules/
+build/
+.env
+
