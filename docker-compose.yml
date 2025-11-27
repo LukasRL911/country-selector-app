@@ -1,12 +1,11 @@
 version: "3.9"
-
 services:
-  backend:
-    build: ./backend
+  inflation-service:
+    build: ./services/inflation-service
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./services/inflation-service:/app
     environment:
       - PYTHONUNBUFFERED=1
 
@@ -17,4 +16,4 @@ services:
     volumes:
       - ./frontend:/app
     depends_on:
-      - backend
+      - inflation-service
